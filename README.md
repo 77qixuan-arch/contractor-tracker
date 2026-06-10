@@ -5,6 +5,8 @@ A lightweight, single-file HTML project tracker for architecture and constructio
 ![Status](https://img.shields.io/badge/status-active-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+![Preview](preview.png)
+
 ## Features
 
 - **KPI dashboard** — total hours, contract value, paid vs owing at a glance
