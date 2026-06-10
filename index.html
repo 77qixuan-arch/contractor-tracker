@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contractor Project Tracker</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; font-size: 14px; min-height: 100vh; }
+  .app { max-width: 780px; margin: 0 auto; padding: 24px 16px 60px; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header h1 { font-size: 18px; font-weight: 600; }
+  .header-btns { display: flex; gap: 8px; }
+  .btn-add-project { display: flex; align-items: center; gap: 6px; background: #fff; border: 1.5px solid #e0e0e0; border-radius: 10px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; color: #333; transition: all .15s; }
+  .btn-add-project:hover { border-color: #bbb; background: #fafafa; }
+  .btn-sync { display: flex; align-items: center; gap: 6px; background: #1a1a1a; border: none; border-radius: 10px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; color: #fff; }
+  .btn-sync:hover { background: #333; }
+  .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+  .kpi-card { background: #fff; border-radius: 14px; padding: 18px 20px; border: 1px solid #ebebeb; }
+  .kpi-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .kpi-value { font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .kpi-sub { font-size: 12px; color: #aaa; }
+  .project-card { background: #fff; border-radius: 16px; border: 1px solid #ebebeb; margin-bottom: 16px; overflow: hidden; }
+  .project-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 20px 0; }
+  .project-title { font-size: 16px; font-weight: 650; }
+  .project-type { font-size: 12px; color: #999; margin-top: 3px; }
+  .project-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .status-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+  .status-awaiting    { background: #fef3e2; color: #b45309; }
+  .status-not-started { background: #f3f4f6; color: #6b7280; }
+  .status-in-progress { background: #e0f2fe; color: #0369a1; }
+  .status-completed   { background: #dcfce7; color: #15803d; }
+  .status-on-hold     { background: #fee2e2; color: #b91c1c; }
+  .status-select { font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 6px 28px 6px 10px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 8px center; color: #374151; cursor: pointer; appearance: none; }
+  .progress-row { display: flex; align-items: center; gap: 10px; padding: 14px 20px 0; }
+  .progress-bar-bg { flex: 1; height: 6px; background: #f0f0ee; border-radius: 99px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 99px; transition: width .4s; }
+  .progress-pct-input { width: 48px; border: 1.5px solid #e5e7eb; border-radius: 7px; padding: 4px 6px; text-align: center; font-size: 13px; font-weight: 600; color: #374151; }
+  .progress-pct-label { font-size: 13px; color: #999; }
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; padding: 14px 20px; border-bottom: 1px solid #f5f5f5; }
+  .stat-label { font-size: 11px; color: #aaa; margin-bottom: 3px; }
+  .stat-value { font-size: 14px; font-weight: 600; }
+  .worklog-section { padding: 14px 20px; border-bottom: 1px solid #f5f5f5; }
+  .worklog-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: #aaa; text-transform: uppercase; margin-bottom: 10px; }
+  .worklog-entry { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+  .worklog-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .worklog-date { font-size: 12px; color: #888; width: 60px; flex-shrink: 0; }
+  .worklog-desc { flex: 1; font-size: 13px; color: #333; }
+  .worklog-hrs-input { width: 44px; border: 1.5px solid #e5e7eb; border-radius: 6px; padding: 2px 4px; font-size: 12px; color: #333; text-align: center; background: #fafafa; }
+  .worklog-hrs-input:focus { outline: none; border-color: #93b4e8; background: #fff; }
+  .worklog-del { background: none; border: none; color: #ccc; cursor: pointer; font-size: 16px; padding: 0 2px; }
+  .worklog-del:hover { color: #e55; }
+  .worklog-empty { font-size: 12px; color: #ccc; font-style: italic; }
+  .tip-box { margin: 0 20px 14px; background: #fafaf8; border: 1px solid #f0efe9; border-radius: 10px; padding: 10px 14px; display: flex; gap: 8px; }
+  .tip-text { font-size: 12px; color: #666; line-height: 1.5; }
+  .finance-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; padding: 14px 20px; border-bottom: 1px solid #f5f5f5; }
+  .fin-label { font-size: 11px; color: #aaa; margin-bottom: 5px; text-align: center; }
+  .fin-input { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 7px 8px; text-align: center; font-size: 14px; font-weight: 600; color: #374151; background: #fafafa; }
+  .fin-input:focus { outline: none; border-color: #a3c4f3; background: #fff; }
+  .fin-owing { font-size: 14px; font-weight: 700; color: #b45309; text-align: center; padding-top: 6px; }
+  .action-row { display: flex; gap: 10px; padding: 14px 20px; }
+  .btn { display: flex; align-items: center; gap: 6px; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 500; cursor: pointer; background: #fff; color: #374151; transition: all .15s; }
+  .btn:hover { background: #f9fafb; }
+  .btn-danger { color: #e55; border-color: #fee2e2; }
+  .btn-danger:hover { background: #fff5f5; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 18px; padding: 28px; width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+  .modal h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; font-size: 14px; color: #1a1a1a; background: #fafafa; }
+  .form-input:focus { outline: none; border-color: #93b4e8; background: #fff; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
+  .btn-primary { background: #1a1a1a; color: #fff; border: none; border-radius: 10px; padding: 10px 22px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-primary:hover { background: #333; }
+  .btn-cancel { background: #f3f4f6; color: #555; border: none; border-radius: 10px; padding: 10px 18px; font-size: 14px; cursor: pointer; }
+  .add-project-footer { text-align: center; padding: 20px; color: #ccc; font-size: 13px; cursor: pointer; border: 2px dashed #e5e7eb; border-radius: 16px; transition: all .15s; }
+  .add-project-footer:hover { border-color: #bbb; color: #999; background: #fafafa; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1a1a; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 500; z-index: 200; transition: transform .3s; pointer-events: none; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <span style="font-size:18px">📋</span>
+      <h1>Project Tracker</h1>
+    </div>
+    <div class="header-btns">
+      <button class="btn-add-project" onclick="openAddProject()">+ Add project</button>
+      <button class="btn-sync" onclick="openExport()">⇑ Export data</button>
+    </div>
+  </div>
+  <div class="kpi-row" id="kpiRow"></div>
+  <div id="projectList"></div>
+  <div class="add-project-footer" onclick="openAddProject()">＋ Add new project</div>
+</div>
+
+<!-- Log Session -->
+<div class="modal-overlay" id="logModal">
+  <div class="modal">
+    <h2>Log session</h2>
+    <input type="hidden" id="logProjectId">
+    <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="logDate"></div>
+    <div class="form-group"><label class="form-label">Drawing Set / Task</label><input class="form-input" type="text" id="logSet" placeholder="e.g. Set 2"></div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" type="text" id="logDesc" placeholder="e.g. Revised floor plan"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Hours</label><input class="form-input" type="number" id="logHours" placeholder="0" min="0" step="0.5"></div>
+      <div class="form-group"><label class="form-label">Activity</label>
+        <select class="form-input" id="logActivity"><option>Drawing</option><option>Meeting</option><option>Site Visit</option><option>Revision</option><option>Admin</option><option>Other</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes</label><input class="form-input" type="text" id="logNotes" placeholder="Optional"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('logModal')">Cancel</button>
+      <button class="btn-primary" onclick="saveLog()">Save session</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Details -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h2>Edit project details</h2>
+    <input type="hidden" id="editProjectId">
+    <div class="form-group"><label class="form-label">Project Address</label><input class="form-input" type="text" id="editAddress"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Type</label><input class="form-input" type="text" id="editType"></div>
+      <div class="form-group"><label class="form-label">Progress %</label><input class="form-input" type="number" id="editProgress" min="0" max="100"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Status</label>
+      <select class="form-input" id="editStatus"><option>Not Started</option><option>In Progress</option><option>Awaiting Feedback</option><option>Completed</option><option>On Hold</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Next Action / Notes</label><input class="form-input" type="text" id="editNextAction"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Contract ($)</label><input class="form-input" type="number" id="editContract" min="0"></div>
+      <div class="form-group"><label class="form-label">Deposit ($)</label><input class="form-input" type="number" id="editDeposit" min="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Paid ($)</label><input class="form-input" type="number" id="editPaid" min="0"></div>
+      <div class="form-group"><label class="form-label">Latest Submission</label><input class="form-input" type="text" id="editLatest" placeholder="e.g. 18 May 2025"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('editModal')">Cancel</button>
+      <button class="btn-primary" onclick="saveEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Project -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h2>Add new project</h2>
+    <div class="form-group"><label class="form-label">Project Address</label><input class="form-input" type="text" id="newAddress" placeholder="e.g. 12 Oak St, Richmond"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Type</label><input class="form-input" type="text" id="newType" value="Renovation"></div>
+      <div class="form-group"><label class="form-label">Contract ($)</label><input class="form-input" type="number" id="newContract" placeholder="0"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Next Action / Notes</label><input class="form-input" type="text" id="newNextAction" placeholder="e.g. Site visit done, confirm fee"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
+      <button class="btn-primary" onclick="saveNewProject()">Add project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal">
+    <h2>📋 Export data</h2>
+    <p style="font-size:13px;color:#666;margin-bottom:14px;">Copy and send to Claude (or any AI) to sync your Excel tracker, or save as a backup.</p>
+    <textarea id="exportText" readonly style="width:100%;height:200px;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px;font-size:12px;color:#444;background:#fafafa;resize:none;font-family:monospace;"></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('exportModal')">Close</button>
+      <button class="btn-primary" onclick="copyExport()">Copy to clipboard</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Demo data ─────────────────────────────────────────────────────────────────
+const DEMO = [
+  {
+    id:'demo1', address:'12 Maple St, Richmond', type:'Renovation + Extension',
+    status:'Awaiting Feedback', progress:65,
+    contract:3500, deposit:1000, paid:1000, latest:'1 Jun 2025',
+    nextAction:'Set 2 submitted. Follow up if no reply within 5 days.',
+    worklog:[
+      {date:'5 May',  set:'Set 1', desc:'Existing floor plans & site survey', hours:12, activity:'Drawing'},
+      {date:'20 May', set:'Set 2', desc:'Proposed ground floor layout',        hours:14, activity:'Drawing'},
+      {date:'1 Jun',  set:'Set 2', desc:'Elevations & sections',               hours:10, activity:'Drawing'},
+    ]
+  },
+  {
+    id:'demo2', address:'88 Oak Ave, Fitzroy', type:'New Build',
+    status:'In Progress', progress:20,
+    contract:5500, deposit:1500, paid:1500, latest:'—',
+    nextAction:'Concept drawings underway. Present to client next week.',
+    worklog:[
+      {date:'3 Jun', set:'Set 1', desc:'Site analysis & sketch concepts',  hours:6, activity:'Drawing'},
+      {date:'9 Jun', set:'Set 1', desc:'Concept floor plan (3 options)',    hours:8, activity:'Drawing'},
+    ]
+  },
+  {
+    id:'demo3', address:'5 Birch Rd, Northcote', type:'Renovation',
+    status:'Not Started', progress:0,
+    contract:0, deposit:0, paid:0, latest:'—',
+    nextAction:'Site visit done. Awaiting fee confirmation.',
+    worklog:[]
+  }
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+function loadState() {
+  try { const s=localStorage.getItem('ct_v1'); return s?JSON.parse(s):JSON.parse(JSON.stringify(DEMO)); }
+  catch { return JSON.parse(JSON.stringify(DEMO)); }
+}
+function saveState() { localStorage.setItem('ct_v1', JSON.stringify(projects)); }
+let projects = loadState();
+
+const DOTS = ['#22c55e','#f59e0b','#3b82f6','#a855f7','#ef4444','#06b6d4','#84cc16'];
+const PROG_COLORS = {'Awaiting Feedback':'#b45309','In Progress':'#2563eb','Completed':'#15803d','Not Started':'#9ca3af','On Hold':'#dc2626'};
+
+function sClass(s){
+  return 'status-'+({'Awaiting Feedback':'awaiting','Not Started':'not-started','In Progress':'in-progress','Completed':'completed','On Hold':'on-hold'}[s]||'not-started');
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderKPI() {
+  const hrs  = projects.reduce((a,p)=>a+p.worklog.reduce((b,e)=>b+e.hours,0),0);
+  const con  = projects.reduce((a,p)=>a+p.contract,0);
+  const paid = projects.reduce((a,p)=>a+p.paid,0);
+  const owe  = projects.reduce((a,p)=>a+(p.contract-p.paid),0);
+  const done = projects.filter(p=>p.status==='Completed').length;
+  const act  = projects.filter(p=>['In Progress','Awaiting Feedback'].includes(p.status)).length;
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kpi-card"><div class="kpi-label">Total hours logged</div><div class="kpi-value">${hrs} hrs</div><div class="kpi-sub">across ${projects.length} project${projects.length!==1?'s':''}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total contract value</div><div class="kpi-value">$${con.toLocaleString()}</div><div class="kpi-sub">$${paid.toLocaleString()} paid · $${owe.toLocaleString()} owing</div></div>
+    <div class="kpi-card"><div class="kpi-label">Projects</div><div class="kpi-value">${projects.length}</div><div class="kpi-sub">${act} active · ${done} done</div></div>`;
+}
+
+function renderProjects() {
+  const list=document.getElementById('projectList');
+  list.innerHTML='';
+  projects.forEach(p=>{
+    const hrs=p.worklog.reduce((a,e)=>a+e.hours,0);
+    const owe=p.contract-p.paid;
+    const pc=PROG_COLORS[p.status]||'#9ca3af';
+    const wlog=p.worklog.length===0
+      ?`<div class="worklog-empty">No sessions logged yet.</div>`
+      :p.worklog.map((e,i)=>`
+        <div class="worklog-entry">
+          <span class="worklog-dot" style="background:${DOTS[i%DOTS.length]}"></span>
+          <span class="worklog-date">${e.date}</span>
+          <span class="worklog-desc">${e.set} — ${e.desc}</span>
+          <input class="worklog-hrs-input" type="number" min="0" step="0.5" value="${e.hours}"
+            oninput="updateLogHours('${p.id}',${i},this.value)" onfocus="this.select()">
+          <button class="worklog-del" onclick="deleteLog('${p.id}',${i})">×</button>
+        </div>`).join('');
+    const card=document.createElement('div');
+    card.className='project-card'; card.id='project-'+p.id;
+    card.innerHTML=`
+      <div class="project-header">
+        <div><div class="project-title">${p.address}</div><div class="project-type">${p.type}</div></div>
+        <div class="project-header-right">
+          <span class="status-badge ${sClass(p.status)}">${p.status}</span>
+          <select class="status-select" onchange="changeStatus('${p.id}',this.value)">
+            ${['Not Started','In Progress','Awaiting Feedback','Completed','On Hold'].map(s=>`<option${s===p.status?' selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="progress-row">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${p.progress}%;background:${pc}"></div></div>
+        <input class="progress-pct-input" type="number" min="0" max="100" value="${p.progress}" oninput="changeProgress('${p.id}',this.value)">
+        <span class="progress-pct-label">%</span>
+      </div>
+      <div class="stats-row">
+        <div><div class="stat-label">Hours logged</div><div class="stat-value" id="hrs-${p.id}">${hrs} hrs</div></div>
+        <div><div class="stat-label">Sessions</div><div class="stat-value">${p.worklog.length}</div></div>
+        <div><div class="stat-label">Status</div><div class="stat-value">${p.status}</div></div>
+        <div><div class="stat-label">Latest submission</div><div class="stat-value" style="font-size:12px;font-weight:400;color:#888">${p.latest||'—'}</div></div>
+      </div>
+      <div class="worklog-section"><div class="worklog-title">Work Log</div>${wlog}</div>
+      ${p.nextAction?`<div class="tip-box"><span style="font-size:14px;flex-shrink:0">💡</span><div class="tip-text">${p.nextAction}</div></div>`:''}
+      <div class="finance-row">
+        <div><div class="fin-label">Contract ($)</div><input class="fin-input" type="number" value="${p.contract}" oninput="updateFinance('${p.id}','contract',this.value)"></div>
+        <div><div class="fin-label">Deposit ($)</div><input class="fin-input" type="number" value="${p.deposit}" oninput="updateFinance('${p.id}','deposit',this.value)"></div>
+        <div><div class="fin-label">Paid ($)</div><input class="fin-input" type="number" value="${p.paid}" style="color:#15803d" oninput="updateFinance('${p.id}','paid',this.value)"></div>
+        <div><div class="fin-label">Owing</div><div class="fin-owing" id="owing-${p.id}">$${owe.toLocaleString()}</div></div>
+      </div>
+      <div class="action-row">
+        <button class="btn" onclick="openLogSession('${p.id}')">＋ Log session</button>
+        <button class="btn" onclick="openEdit('${p.id}')">✎ Edit details</button>
+        <button class="btn btn-danger" onclick="removeProject('${p.id}')">🗑 Remove</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function render(){ renderKPI(); renderProjects(); }
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+function changeStatus(id,val){ projects.find(x=>x.id===id).status=val; saveState(); render(); }
+function changeProgress(id,val){ projects.find(x=>x.id===id).progress=Math.min(100,Math.max(0,+val||0)); saveState(); render(); }
+
+const _fd={};
+function updateFinance(id,field,val){
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  p[field]=parseFloat(val)||0;
+  const el=document.getElementById('owing-'+id);
+  if(el) el.textContent='$'+(p.contract-p.paid).toLocaleString();
+  clearTimeout(_fd[id+field]);
+  _fd[id+field]=setTimeout(()=>{ saveState(); renderKPI(); },300);
+}
+
+function updateLogHours(id,idx,val){
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  p.worklog[idx].hours=parseFloat(val)||0;
+  saveState(); renderKPI();
+  const el=document.getElementById('hrs-'+id);
+  if(el) el.textContent=p.worklog.reduce((a,e)=>a+e.hours,0)+' hrs';
+}
+
+function deleteLog(id,idx){ projects.find(x=>x.id===id).worklog.splice(idx,1); saveState(); render(); }
+function removeProject(id){
+  if(!confirm('Remove this project?')) return;
+  projects=projects.filter(x=>x.id!==id); saveState(); render(); toast('Project removed');
+}
+
+function openLogSession(id){
+  document.getElementById('logProjectId').value=id;
+  document.getElementById('logDate').valueAsDate=new Date();
+  ['logSet','logDesc','logHours','logNotes'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('logModal').classList.add('open');
+}
+function saveLog(){
+  const id=document.getElementById('logProjectId').value;
+  const p=projects.find(x=>x.id===id);
+  const hours=parseFloat(document.getElementById('logHours').value)||0;
+  if(!hours){ alert('Please enter hours'); return; }
+  const d=new Date(document.getElementById('logDate').value||Date.now());
+  p.worklog.push({
+    date:d.toLocaleDateString('en-AU',{day:'numeric',month:'short'}),
+    set:document.getElementById('logSet').value||'Session',
+    desc:document.getElementById('logDesc').value||'',
+    hours, activity:document.getElementById('logActivity').value,
+    notes:document.getElementById('logNotes').value
+  });
+  saveState(); closeModal('logModal'); render(); toast('Session logged ✓');
+}
+
+function openEdit(id){
+  const p=projects.find(x=>x.id===id);
+  ['editProjectId','editAddress','editType','editProgress','editStatus','editNextAction','editContract','editDeposit','editPaid','editLatest']
+    .forEach(i=>{ const el=document.getElementById(i); if(el){ const k=i.replace('edit','').replace(/^./,c=>c.toLowerCase()); el.value=p[k]??''; }});
+  document.getElementById('editProjectId').value=id;
+  document.getElementById('editAddress').value=p.address;
+  document.getElementById('editType').value=p.type;
+  document.getElementById('editProgress').value=p.progress;
+  document.getElementById('editStatus').value=p.status;
+  document.getElementById('editNextAction').value=p.nextAction||'';
+  document.getElementById('editContract').value=p.contract;
+  document.getElementById('editDeposit').value=p.deposit;
+  document.getElementById('editPaid').value=p.paid;
+  document.getElementById('editLatest').value=p.latest||'';
+  document.getElementById('editModal').classList.add('open');
+}
+function saveEdit(){
+  const id=document.getElementById('editProjectId').value;
+  const p=projects.find(x=>x.id===id);
+  p.address=document.getElementById('editAddress').value;
+  p.type=document.getElementById('editType').value;
+  p.progress=+document.getElementById('editProgress').value||0;
+  p.status=document.getElementById('editStatus').value;
+  p.nextAction=document.getElementById('editNextAction').value;
+  p.contract=+document.getElementById('editContract').value||0;
+  p.deposit=+document.getElementById('editDeposit').value||0;
+  p.paid=+document.getElementById('editPaid').value||0;
+  p.latest=document.getElementById('editLatest').value;
+  saveState(); closeModal('editModal'); render(); toast('Saved ✓');
+}
+
+function openAddProject(){
+  document.getElementById('newAddress').value='';
+  document.getElementById('newType').value='Renovation';
+  document.getElementById('newContract').value='';
+  document.getElementById('newNextAction').value='';
+  document.getElementById('addModal').classList.add('open');
+}
+function saveNewProject(){
+  const addr=document.getElementById('newAddress').value.trim();
+  if(!addr){ alert('Please enter a project address'); return; }
+  projects.push({ id:'p_'+Date.now(), address:addr,
+    type:document.getElementById('newType').value||'Renovation',
+    status:'Not Started', progress:0,
+    contract:+document.getElementById('newContract').value||0,
+    deposit:0, paid:0, latest:'—',
+    nextAction:document.getElementById('newNextAction').value, worklog:[]
+  });
+  saveState(); closeModal('addModal'); render(); toast('Project added ✓');
+}
+
+function openExport(){
+  const txt=projects.map(p=>{
+    const hrs=p.worklog.reduce((a,e)=>a+e.hours,0);
+    const log=p.worklog.map(e=>`  • ${e.date} | ${e.set} | ${e.desc} | ${e.hours}h`).join('\n');
+    return `[${p.address}]\n  Type: ${p.type} | Status: ${p.status} | Progress: ${p.progress}%\n  Contract: $${p.contract} | Paid: $${p.paid} | Owing: $${p.contract-p.paid}\n  Total hours: ${hrs}h | Sessions: ${p.worklog.length}\n  Latest: ${p.latest||'—'}\n  Note: ${p.nextAction||'—'}\n  Work log:\n${log||'  (none)'}`;
+  }).join('\n\n');
+  document.getElementById('exportText').value=txt;
+  document.getElementById('exportModal').classList.add('open');
+}
+function copyExport(){
+  const ta=document.getElementById('exportText'); ta.select();
+  navigator.clipboard.writeText(ta.value)
+    .then(()=>{ toast('Copied!'); closeModal('exportModal'); })
+    .catch(()=>{ document.execCommand('copy'); toast('Copied!'); closeModal('exportModal'); });
+}
+
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('open'); });
+});
+let _tt;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+render();
+</script>
+</body>
+</html>
